@@ -1,18 +1,13 @@
 import subprocess
 
-split = {
-    "tab" : "\t",
-    "new_line" : "\n",
-    "space" : " "
-}
 
-def execute_task(task,with_return=False,spliter="space",field=None):
+def execute_task(task,with_return=False,return_type="list"):
     if with_return:
-        result = subprocess.check_output(task)
-        if field :
-            return result.split(split.get(spliter))[field]
+        result = subprocess.check_output(task).splitlines()
+        if return_type == "list" :
+            return result
         else :
-            return result.split(split.get(spliter))
+            return result[0]
     else :
         return subprocess.call(task)
 
