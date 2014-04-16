@@ -23,3 +23,8 @@ print "======================= datasheet attribute test=========================
 print p.get_datasheet_attribute("tank/test",attribute="mountpoint")
 print "=========================================================================="
 print "\n\n"
+
+print "======================= Create Datasheet =========================="
+print p.create_datasheet('vstorage','centos01')
+print "=========================================================================="
+print "\n\n"

@@ -85,9 +85,19 @@ class Pizza(object):
     
     
     def __check_datasheet(self,pool,datasheet):
-        pass
+        list_datasheet = self.__get_datasheet(pool)
+        if datasheet not in list_datasheet :
+            return False
+        else :
+            return True
     
     def list_pool(self,detail=False,unit="gb"):
+        """Return information about pool
+        
+        Keyword arguments :
+        detail -- detail output with capacity and datasheet list ( default True)
+        unit   -- return will formated in: kb,mb,gb (default kb)
+        """
         if detail :
             list_pool = self.__list_pool()
             result = {}
@@ -102,20 +112,40 @@ class Pizza(object):
             return self.__list_pool()
     
     def get_datasheet(self,pool):
+        """Return list of datasheet in a pool
+        
+        Arguments :
+        pool  --  Pool name
+        """
         return self.__get_datasheet(pool)
     
     def get_datasheet_attribute(self,datasheet,attribute="all",unit="kb"):
+        """Return information about attribute of datasheet
+        
+        Arguments :
+        datasheet  -- datasheet you want
+        
+        Keyword arguments :
+        attribute  -- test
+        unit       -- test
+        """
         return self.__get_datasheet_attribute(datasheet,attribute,unit)
-            
     
-    def create_datasheet(pool,name,attribute=None):
+    def create_datasheet(self,pool,name,attribute=None):
+        if self.__check_datasheet(pool,name):
+            print "udah ada"
+        else :
+            if attribute :
+                args = ""
+                for item in attribute :
+                    args += "%s=%s" %(item,arg.get(item))
+                args = args[:-1]
+    
+    def create_zvol(self,pool,name,capacity,attribute=None):
         pass
     
-    def create_zvol(pool,name,capacity,attribute=None):
+    def alter_datasheet_attribute(self,name,attribute,value):
         pass
     
-    def alter_datasheet_attribute(name,attribute,value):
-        pass
-    
-    def alter_zvol_attribute(name,attribute,value):
+    def alter_zvol_attribute(self,name,attribute,value):
         pass
