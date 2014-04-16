@@ -19,27 +19,51 @@ class Pizza(object):
     
     
     
-    def __get_capacity(self,datasheet,unit):
-        used = execute_task(
-            ["zfs", "list", "-Hp" ,"-o", "used" ,datasheet],
-            with_return=True,
-            return_type="value"
-        )
-        
-        free = execute_task(
-            ["zfs", "list", "-Hp", "-o", "available" ,datasheet],
-            with_return=True,
-            return_type="value"
-        )
-        result = {
+    def __get_capacity(self,dataset,unit):
+        if self.__get_dataset_attribute(
+            dataset,attribute='type',unit=unit).get('type') == 'filesystem' :
+            used = execute_task(
+                ["zfs", "list", "-Hp" ,"-o", "used" ,dataset],
+                with_return=True,
+                return_type="value"
+            )
+            
+            free = execute_task(
+                ["zfs", "list", "-Hp", "-o", "available" ,dataset],
+                with_return=True,
+                return_type="value"
+            )
+            
+            result = {
             'used' : convert_byte(used,unit),
             'free' : convert_byte(free,unit),
             'total' : convert_byte(used,unit) +
                       convert_byte(free,unit)
-        }
+            }
+        elif self.__get_dataset_attribute(
+            dataset,attribute='type',unit=unit).get('type') == 'volume' :
+            used = execute_task(
+                ["zfs", "list", "-Hp" ,"-o", "usedbydataset" ,dataset],
+                with_return=True,
+                return_type="value"
+            )
+            
+            total = execute_task(
+                ["zfs", "list", "-Hp", "-o", "volsize" ,dataset],
+                with_return=True,
+                return_type="value"
+            )
+            result = {
+                'used' : convert_byte(used,unit),
+                'free' : convert_byte(total,unit) -
+                         convert_byte(used,unit),
+                'total' : convert_byte(total,unit)
+            }
+        else :
+            result = {}
         return result
     
-    def __get_datasheet(self,pool):
+    def __get_dataset(self,pool):
         result = {}
         raw = execute_task(
             ['zfs', 'list','-Hp', '-o' ,'name' ,'-r', pool],
@@ -51,11 +75,11 @@ class Pizza(object):
             del raw[0]
             return raw
     
-    def __get_datasheet_attribute(self,datasheet,attribute,unit):
+    def __get_dataset_attribute(self,dataset,attribute,unit):
         if attribute == 'all' :
             result = {}
             cmd = execute_task(
-                ['zfs', 'get', '-Hp', 'all', '-o', 'property,value' ,datasheet],
+                ['zfs', 'get', '-Hp', 'all', '-o', 'property,value' ,dataset],
                 with_return=True,
             )
             for line in cmd :
@@ -70,7 +94,7 @@ class Pizza(object):
             return result
         else :
             cmd = execute_task(
-                ['zfs', 'get', '-Hp', attribute, '-o', 'property,value' ,datasheet],
+                ['zfs', 'get', '-Hp', attribute, '-o', 'property,value' ,dataset],
                 with_return=True,
                 return_type="value"
             )
@@ -84,18 +108,30 @@ class Pizza(object):
             return { item[0]: value}
     
     
-    def __check_datasheet(self,pool,datasheet):
-        list_datasheet = self.__get_datasheet(pool)
-        if datasheet not in list_datasheet :
+    def __check_dataset(self,pool,dataset):
+        list_dataset = self.__get_dataset(pool)
+        dataset = "%s/%s" % (pool,dataset)
+        if dataset not in list_dataset :
             return False
         else :
             return True
+        
+    def __alter_attribute(self,name,attribute,value):
+        agr = "%s=%s" % (attribute,value)
+        execute_task(
+            ['zfs','set',agr, name]
+        )
+        
+    def __destroy_zfs(self,name):
+        execute_task(
+            ['zfs','destroy', name]
+        )
     
     def list_pool(self,detail=False,unit="gb"):
         """Return information about pool
         
         Keyword arguments :
-        detail -- detail output with capacity and datasheet list ( default True)
+        detail -- detail output with capacity and dataset list ( default True)
         unit   -- return will formated in: kb,mb,gb (default kb)
         """
         if detail :
@@ -104,48 +140,91 @@ class Pizza(object):
             for pool in list_pool:
                 result[pool] = {
                     'capacity' : self.__get_capacity(pool,unit),
-                    'datasheet' : self.__get_datasheet(pool)
+                    'dataset' : self.__get_dataset(pool)
                 }
             return result
             
         else :
             return self.__list_pool()
     
-    def get_datasheet(self,pool):
-        """Return list of datasheet in a pool
+    def get_dataset(self,pool):
+        """Return list of dataset in a pool
         
         Arguments :
         pool  --  Pool name
         """
-        return self.__get_datasheet(pool)
+        return self.__get_dataset(pool)
     
-    def get_datasheet_attribute(self,datasheet,attribute="all",unit="kb"):
-        """Return information about attribute of datasheet
+    def get_dataset_attribute(self,dataset,attribute="all",unit="kb"):
+        """Return information about attribute of dataset
         
         Arguments :
-        datasheet  -- datasheet you want
+        dataset  -- dataset you want
         
         Keyword arguments :
         attribute  -- test
         unit       -- test
         """
-        return self.__get_datasheet_attribute(datasheet,attribute,unit)
+        return self.__get_dataset_attribute(dataset,attribute,unit)
     
-    def create_datasheet(self,pool,name,attribute=None):
-        if self.__check_datasheet(pool,name):
-            print "udah ada"
+    def create_dataset(self,pool,name,attribute=None):
+        if self.__check_dataset(pool,name):
+            raise ValueError("Dataset already exists")
         else :
             if attribute :
-                args = ""
+                task = ['zfs', 'create']
                 for item in attribute :
-                    args += "%s=%s" %(item,arg.get(item))
-                args = args[:-1]
+                    task.append("-o")
+                    task.append("%s=%s" %(item,attribute.get(item)))
+                task.append('%s/%s' % (pool,name))
+                execute_task(
+                    task
+                )
+            else :
+                execute_task(
+                    ['zfs', 'create','%s/%s' % (pool,name)],
+                )
+        return "Dataset succesfuly created"
     
     def create_zvol(self,pool,name,capacity,attribute=None):
-        pass
+        if self.__check_dataset(pool,name):
+            raise ValueError("Zvol already exists")
+        else :
+            if attribute :
+                task = ['zfs', 'create' ,'-V', capacity]
+                for item in attribute :
+                    task.append("-o")
+                    task.append("%s=%s" %(item,attribute.get(item)))
+                task.append('%s/%s' % (pool,name))
+                execute_task(
+                    task
+                )
+            else :
+                execute_task(
+                    ['zfs', 'create','-V', capacity ,'%s/%s' % (pool,name)],
+                )
+        return "Zvol succesfuly created"
     
-    def alter_datasheet_attribute(self,name,attribute,value):
-        pass
-    
+    def alter_dataset_attribute(self,name,attribute,value):    
+        self.__alter_attribute(name,attribute,value)
+        
     def alter_zvol_attribute(self,name,attribute,value):
+        self.__alter_attribute(name,attribute,value)
+        
+    def destroy_zfs(self,name):
+        self.__destroy_zfs(name)
+        
+    def send_zfs(self,dataset,target):
+        pass
+    
+    def receive_zfs(self,dataset,source):
+        pass
+    
+    def rename_zfs(self,dataset,source):
+        pass
+    
+    def snapshot_zfs(self,dataset,source):
+        pass
+    
+    def clone_zfs(self,dataset,source):
         pass
