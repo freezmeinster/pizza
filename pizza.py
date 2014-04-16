@@ -17,6 +17,8 @@ class Pizza(object):
                 )
         return result
     
+    
+    
     def __get_capacity(self,datasheet,unit):
         used = execute_task(
             ["zfs", "list", "-Hp" ,"-o", "used" ,datasheet],
@@ -81,6 +83,10 @@ class Pizza(object):
                 value = item[1]
             return { item[0]: value}
     
+    
+    def __check_datasheet(self,pool,datasheet):
+        pass
+    
     def list_pool(self,detail=False,unit="gb"):
         if detail :
             list_pool = self.__list_pool()
@@ -101,3 +107,15 @@ class Pizza(object):
     def get_datasheet_attribute(self,datasheet,attribute="all",unit="kb"):
         return self.__get_datasheet_attribute(datasheet,attribute,unit)
             
+    
+    def create_datasheet(pool,name,attribute=None):
+        pass
+    
+    def create_zvol(pool,name,capacity,attribute=None):
+        pass
+    
+    def alter_datasheet_attribute(name,attribute,value):
+        pass
+    
+    def alter_zvol_attribute(name,attribute,value):
+        pass
