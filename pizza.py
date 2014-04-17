@@ -153,6 +153,18 @@ class Pizza(object):
         execute_task(
             ['zfs','clone','-p',zfs_source, target]
         )
+        
+    def __resize_zfs(self,dataset,new_size):
+        dataset_type = self.__get_dataset_attribute(
+            dataset,attribute="type",unit='kb').get('type')
+        if dataset_type == "volume" :
+            execute_task(
+                ['zfs','set','volsize=%s' % new_size,dataset]
+            )
+        elif dataset_type == "filesystem" :
+            execute_task(
+                ['zfs','set','quota=%' % new_size, dataset]
+            )
     
     def list_pool(self,detail=False,unit="gb"):
         """Return information about pool
@@ -247,8 +259,8 @@ class Pizza(object):
     def receive_zfs(self,source,target):
         self.__receive_zfs(source,target)
         
-    def rename_zfs(self,dataset,source):
-        pass
+    def resize_zfs(self,dataset,new_size):
+        self.__resize_zfs(dataset,new_size)
     
     def snapshot_zfs(self,target,snapshot_name):
         self.__snapshot_zfs(target,snapshot_name)

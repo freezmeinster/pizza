@@ -54,6 +54,10 @@ print p.alter_dataset_attribute('vstorage/centos02',attribute='mountpoint',value
 print "=========================================================================="
 print "\n\n"
 
+print "=======================  resize ZFS  ===================================="
+print p.resize_zfs('vstorage/zvol01','3G')
+print "=========================================================================="
+print "\n\n"
 
 print "======================= destroy ZFS  ===================================="
 print p.destroy_zfs('vstorage/centos02')
@@ -80,3 +84,4 @@ print "=======================  clone ZFS  ===================================="
 print p.clone_zfs('vstorage/centos01@datapenting','vstorage/datapenting')
 print "=========================================================================="
 print "\n\n"
+
