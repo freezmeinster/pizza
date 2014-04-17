@@ -124,7 +124,34 @@ class Pizza(object):
         
     def __destroy_zfs(self,name):
         execute_task(
-            ['zfs','destroy', name]
+            ['zfs','destroy', '-R', name]
+        )
+    
+    def __send_zfs(self,dataset,target):
+        zfs_type = self.__get_dataset_attribute(
+            dataset,attribute='type',unit='kb').get('type')
+        if zfs_type == 'snapshot' :
+            execute_task(
+               ['zfs','send',dataset],
+               output=target
+            )
+        else :
+            raise ValueError("Source not snapshot")
+    
+    def __receive_zfs(self,source,target):
+        execute_task(
+           ['zfs','receive','-F',target],
+           input=source
+        )
+    
+    def __snapshot_zfs(self,target,snapshot_name):
+        execute_task(
+            ['zfs','snapshot','%s@%s' % (target,snapshot_name)]
+        )
+    
+    def __clone_zfs(self,zfs_source,target):
+        execute_task(
+            ['zfs','clone','-p',zfs_source, target]
         )
     
     def list_pool(self,detail=False,unit="gb"):
@@ -215,16 +242,16 @@ class Pizza(object):
         self.__destroy_zfs(name)
         
     def send_zfs(self,dataset,target):
-        pass
+        self.__send_zfs(dataset,target)
     
-    def receive_zfs(self,dataset,source):
-        pass
-    
+    def receive_zfs(self,source,target):
+        self.__receive_zfs(source,target)
+        
     def rename_zfs(self,dataset,source):
         pass
     
-    def snapshot_zfs(self,dataset,source):
-        pass
+    def snapshot_zfs(self,target,snapshot_name):
+        self.__snapshot_zfs(target,snapshot_name)
     
-    def clone_zfs(self,dataset,source):
-        pass
+    def clone_zfs(self,zfs_source,target):
+        self.__clone_zfs(zfs_source,target)

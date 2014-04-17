@@ -60,3 +60,23 @@ print p.destroy_zfs('vstorage/centos02')
 print p.destroy_zfs('vstorage/zvol01')
 print "=========================================================================="
 print "\n\n"
+
+print "======================= send ZFS  ===================================="
+print p.send_zfs('vstorage/centos01@01','/tmp/01.img')
+print "=========================================================================="
+print "\n\n"
+
+print "======================= receive ZFS  ===================================="
+print p.receive_zfs('/tmp/01.img','vstorage/centos03')
+print "=========================================================================="
+print "\n\n"
+
+print "======================= snapshot ZFS  ===================================="
+print p.snapshot_zfs('vstorage/centos01','datapenting')
+print "=========================================================================="
+print "\n\n"
+
+print "=======================  clone ZFS  ===================================="
+print p.clone_zfs('vstorage/centos01@datapenting','vstorage/datapenting')
+print "=========================================================================="
+print "\n\n"
